@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://inventoryhub.example/schemas/productlist.schema.json",
+  "title": "InventoryHub Product List",
+  "description": "A top-level array of products with embedded category objects.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "price", "stock", "category"],
+    "properties": {
+      "id": { "type": "integer", "minimum": 1 },
+      "name": { "type": "string", "minLength": 1, "pattern": "\\S" },
+      "price": { "type": "number", "minimum": 0 },
+      "stock": { "type": "integer", "minimum": 0 },
+      "category": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "integer", "minimum": 1 },
+          "name": { "type": "string", "minLength": 1, "pattern": "\\S" }
+        }
+      }
+    }
+  }
+}

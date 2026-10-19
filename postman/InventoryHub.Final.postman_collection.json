@@ -1,0 +1,164 @@
+{
+  "info": {
+    "_postman_id": "d98cce92-6b19-4750-8dc5-c95d5ef7768e",
+    "name": "InventoryHub — Final: Contract, CORS and Cache Validation",
+    "description": "Final capstone: verify JSON contract, Development CORS and a warm output-cache hit. Run collection in order with ServerApp running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GET product list — JSON contract",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "http://localhost:5150",
+            "type": "text"
+          }
+        ],
+        "url": "{{apiBaseUrl}}/api/productlist",
+        "description": "Should return HTTP 200, application/json, product array with nested category objects."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+              "pm.test(\"JSON content type\", function () { pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"); });",
+              "const data = pm.response.json();",
+              "pm.test(\"Array of two products\", function () { pm.expect(data).to.be.an(\"array\").with.lengthOf(2); });",
+              "pm.test(\"Product and category contract\", function () {",
+              "  data.forEach(p => {",
+              "    pm.expect(Object.keys(p).sort()).to.eql([\"id\", \"name\", \"price\", \"stock\", \"category\"].sort());",
+              "    pm.expect(p.id).to.be.a(\"number\").greaterThan(0);",
+              "    pm.expect(Number.isInteger(p.id)).to.eql(true);",
+              "    pm.expect(p.name).to.be.a(\"string\").and.not.empty;",
+              "    pm.expect(p.name.trim().length).to.be.greaterThan(0);",
+              "    pm.expect(p.price).to.be.a(\"number\").and.at.least(0);",
+              "    pm.expect(p.stock).to.be.a(\"number\").and.at.least(0);",
+              "    pm.expect(Number.isInteger(p.stock)).to.eql(true);",
+              "    pm.expect(p.category).to.be.an(\"object\").and.not.null;",
+              "    pm.expect(Object.keys(p.category).sort()).to.eql([\"id\", \"name\"].sort());",
+              "    pm.expect(Number.isInteger(p.category.id) && p.category.id > 0).to.eql(true);",
+              "    pm.expect(p.category.name).to.be.a(\"string\").and.not.empty;",
+              "    pm.expect(p.category.name.trim().length).to.be.greaterThan(0);",
+              "  });",
+              "});",
+              "pm.test(\"Expected product names and categories\", function () {",
+              "  pm.expect(data.map(p => [p.name, p.category.name])).to.eql([[\"Laptop\", \"Electronics\"], [\"Headphones\", \"Accessories\"]]);",
+              "});",
+              "pm.test(\"Development CORS origin\", function () { pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\")).to.eql(\"*\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "OPTIONS product list — CORS preflight",
+      "request": {
+        "method": "OPTIONS",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "http://localhost:5150",
+            "type": "text"
+          },
+          {
+            "key": "Access-Control-Request-Method",
+            "value": "GET",
+            "type": "text"
+          },
+          {
+            "key": "Access-Control-Request-Headers",
+            "value": "content-type",
+            "type": "text"
+          }
+        ],
+        "url": "{{apiBaseUrl}}/api/productlist"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Preflight accepted\", () => pm.expect([200, 204]).to.include(pm.response.code));",
+              "pm.test(\"Development CORS origin\", () => pm.expect(pm.response.headers.get(\"Access-Control-Allow-Origin\")).to.eql(\"*\"));",
+              "pm.test(\"GET allowed\", () => pm.expect(pm.response.headers.get(\"Access-Control-Allow-Methods\").toUpperCase()).to.include(\"GET\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET product list — record cache generation",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "http://localhost:5150",
+            "type": "text"
+          }
+        ],
+        "url": "{{apiBaseUrl}}/api/productlist",
+        "description": "Run this immediately before the next item. Records the server endpoint generation for a cached follow-up request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "const generation = pm.response.headers.get(\"X-InventoryHub-Generation\");",
+              "pm.test(\"Diagnostic generation header exists\", () => pm.expect(generation).to.be.a(\"string\").and.not.empty);",
+              "pm.collectionVariables.set(\"generation\", generation);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "GET product list — verify warm cache hit",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "http://localhost:5150",
+            "type": "text"
+          }
+        ],
+        "url": "{{apiBaseUrl}}/api/productlist",
+        "description": "The generation value should match the immediately preceding item while the 30-second output cache is warm."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Same cached generation as preceding request\", function () {",
+              "  const first = pm.collectionVariables.get(\"generation\");",
+              "  pm.expect(first, \"Run the preceding collection item first\").to.be.a(\"string\").and.not.empty;",
+              "  pm.expect(pm.response.headers.get(\"X-InventoryHub-Generation\")).to.eql(first);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "apiBaseUrl",
+      "value": "http://localhost:5199",
+      "type": "string"
+    }
+  ]
+}

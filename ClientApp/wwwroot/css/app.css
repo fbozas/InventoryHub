@@ -1,0 +1,18 @@
+html { font-family: system-ui, -apple-system, sans-serif; color: #162438; background: #f7f9fc; }
+body { margin: 0; }
+a { color: #1560a6; }
+.site-header { display: flex; gap: 2rem; align-items: center; padding: 1.1rem 2rem; background: #fff; border-bottom: 1px solid #e1e7ef; }
+.site-header strong { font-size: 1.25rem; }
+.site-header nav { display: flex; gap: 1rem; }
+.site-header nav a { text-decoration: none; }
+.site-header nav a.active { font-weight: 700; text-decoration: underline; }
+.content { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+.product-list { list-style: none; margin: 1.5rem 0; padding: 0; display: grid; gap: .75rem; }
+.product-list li { display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; padding: 1rem; background: white; border: 1px solid #e1e7ef; border-radius: .5rem; }
+.product-list li strong { min-width: 140px; }
+.error { padding: .9rem; color: #842d25; border: 1px solid #e6aaa3; background: #fff4f2; border-radius: .4rem; }
+#blazor-error-ui { display: none; background: #fff5e2; padding: .6rem 1rem; position: fixed; bottom: 0; left: 0; width: 100%; }
+#blazor-error-ui .dismiss { margin-left: 1rem; cursor: pointer; }
+
+button { background: #155da3; color: white; border: 0; border-radius: .35rem; padding: .55rem .85rem; font: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid #f6b933; outline-offset: 2px; }

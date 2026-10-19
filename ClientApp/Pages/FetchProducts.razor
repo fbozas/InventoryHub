@@ -1,0 +1,101 @@
+@page "/fetchproducts"
+@implements IDisposable
+@using System.Text.Json
+@inject ClientApp.Services.ProductService Products
+
+<PageTitle>Products | InventoryHub</PageTitle>
+<h1>Product List</h1>
+
+@if (isLoading)
+{
+    <p role="status">Loading products...</p>
+}
+else if (errorMessage is not null)
+{
+    <p class="error" role="alert">@errorMessage</p>
+    <button type="button" @onclick="RefreshAsync">Try again</button>
+}
+else if (products is null || products.Length == 0)
+{
+    <p>No products available.</p>
+    <button type="button" @onclick="RefreshAsync">Refresh products</button>
+}
+else
+{
+    <button type="button" @onclick="RefreshAsync">Refresh products</button>
+    <ul class="product-list">
+        @foreach (var product in products)
+        {
+            <li>
+                <strong>@product.Name</strong>
+                <span>@product.Price.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("en-US"))</span>
+                <span>Stock: @product.Stock</span>
+                <span>Category: @(product.Category?.Name) (ID: @(product.Category?.Id))</span>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private readonly CancellationTokenSource _disposedTokenSource = new();
+    private Product[]? products;
+    private bool isLoading = true;
+    private bool isDisposed;
+    private string? errorMessage;
+
+    protected override Task OnInitializedAsync() => LoadAsync(forceRefresh: false);
+
+    // Activity 4: explicit refresh is allowed; ordinary navigation reuses the
+    // ProductService 15-second cache and never starts a background polling loop.
+    private Task RefreshAsync() => LoadAsync(forceRefresh: true);
+
+    private async Task LoadAsync(bool forceRefresh)
+    {
+        if (isDisposed)
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var loaded = await Products.GetProductsAsync(forceRefresh, _disposedTokenSource.Token);
+            if (!isDisposed)
+            {
+                products = loaded;
+            }
+        }
+        catch (OperationCanceledException) when (_disposedTokenSource.IsCancellationRequested)
+        {
+            // Navigation disposed this component; do not update it.
+        }
+        catch (OperationCanceledException)
+        {
+            if (!isDisposed) errorMessage = "The product request timed out. Please try again.";
+        }
+        catch (HttpRequestException)
+        {
+            if (!isDisposed) errorMessage = "Unable to load products. Check that the API is running and accessible.";
+        }
+        catch (JsonException)
+        {
+            if (!isDisposed) errorMessage = "The API returned invalid product data. Please try again later.";
+        }
+        catch (NotSupportedException)
+        {
+            if (!isDisposed) errorMessage = "The API returned an unsupported response format.";
+        }
+        finally
+        {
+            if (!isDisposed) isLoading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        isDisposed = true;
+        _disposedTokenSource.Cancel();
+        _disposedTokenSource.Dispose();
+    }
+}
